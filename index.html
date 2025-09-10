@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Turn On All The Lights - Multiplayer</title>
+  <style>
+    :root{--bg:#0f1724;--on:#f6e05e;--off:#1f2937;--accent:#60a5fa}
+    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui}
+    body{background:linear-gradient(180deg,var(--bg),#071025);display:flex;align-items:center;justify-content:center;padding:20px;color:#e6eef8}
+    .app{width:min(600px,96vw);background:rgba(255,255,255,0.03);border-radius:12px;padding:18px;box-shadow:0 8px 30px rgba(2,6,23,0.6)}
+    h1{font-size:20px;margin:0 0 16px 0;text-align:center}
+    .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;justify-items:center}
+    .light{width:56px;height:56px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;font-weight:700;box-shadow:inset 0 -4px 12px rgba(0,0,0,0.4)}
+    .off{background:var(--off);color:#9aa7b7}
+    .on{background:linear-gradient(180deg,var(--on),#d9b94a);color:#111;font-size:14px}
+    .status{text-align:center;margin-top:14px;color:#bcd3f6}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Turn On All The Lights (Multiplayer)</h1>
+    <div id="grid" class="grid" aria-live="polite"></div>
+    <div id="status" class="status">Connecting...</div>
+  </div>
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+    // Your Firebase project config
+    const firebaseConfig = {
+      apiKey: "AIzaSyD6iAQ5xRisAWwtGcBLPOAG631AoDFCfAg",
+      authDomain: "lightbulb-cf2bf.firebaseapp.com",
+      databaseURL: "https://lightbulb-cf2bf-default-rtdb.firebaseio.com",
+      projectId: "lightbulb-cf2bf",
+      storageBucket: "lightbulb-cf2bf.appspot.com",
+      messagingSenderId: "174317057230",
+      appId: "1:174317057230:web:8b494ca4c373764bfc4c9f",
+      measurementId: "G-026SPFXV9M"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const gridEl = document.getElementById('grid');
+    const statusEl = document.getElementById('status');
+
+    const size = 5; // one row of 5
+    let tiles = new Array(size).fill(false);
+
+    function renderGrid(){
+      gridEl.innerHTML = '';
+      for (let i=0;i<size;i++){
+        const btn = document.createElement('div');
+        btn.className = tiles[i] ? 'light on' : 'light off';
+        btn.dataset.idx = i;
+        btn.innerText = tiles[i] ? '💡' : '';
+        btn.addEventListener('click', ()=> toggleTile(i));
+        gridEl.appendChild(btn);
+      }
+    }
+
+    function toggleTile(idx){
+      const updates = {};
+      updates['tiles/'+idx] = !tiles[idx]; // toggle on/off
+      update(ref(db,'game'), updates);
+    }
+
+    function resetAll(){
+      const updates = {};
+      for (let i=0;i<size;i++) updates['tiles/'+i] = false;
+      update(ref(db,'game'), updates);
+    }
+
+    // Listen to database changes
+    onValue(ref(db,'game'), snapshot => {
+      if (snapshot.exists()){
+        const data = snapshot.val();
+        tiles = data.tiles || new Array(size).fill(false);
+        renderGrid();
+        statusEl.textContent = tiles.every(Boolean) ? "All ON! Resetting..." : "Playing";
+        if (tiles.every(Boolean)){
+          setTimeout(()=> resetAll(), 1000);
+        }
+      } else {
+        resetAll();
+      }
+    });
+
+    renderGrid();
+    statusEl.textContent = "Connected";
+  </script>
+</body>
+</html>
