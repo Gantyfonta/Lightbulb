@@ -41,7 +41,7 @@
   <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getDatabase, ref, onValue, push, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+    import { getDatabase, ref, onChildAdded, push, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
     // Your Firebase project config
     const firebaseConfig = {
@@ -66,6 +66,7 @@
 
     const size = 5; // one row of 5
     let tiles = new Array(size).fill(false);
+    let joinTime = Date.now();
 
     function renderGrid(){
       gridEl.innerHTML = '';
@@ -92,6 +93,7 @@
     }
 
     // Listen to game state
+    import { onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
     onValue(ref(db,'game'), snapshot => {
       if (snapshot.exists()){
         const data = snapshot.val();
@@ -117,16 +119,14 @@
       chatInput.value = '';
     }
 
-    onValue(ref(db,'chat'), snapshot => {
-      messagesEl.innerHTML = '';
-      if (snapshot.exists()){
-        const msgs = snapshot.val();
-        Object.values(msgs).sort((a,b)=>a.time-b.time).forEach(m => {
-          const div = document.createElement('div');
-          div.className = 'msg';
-          div.textContent = m.text;
-          messagesEl.appendChild(div);
-        });
+    // Only show messages after joinTime
+    onChildAdded(ref(db,'chat'), snapshot => {
+      const m = snapshot.val();
+      if (m.time >= joinTime){
+        const div = document.createElement('div');
+        div.className = 'msg';
+        div.textContent = m.text;
+        messagesEl.appendChild(div);
         messagesEl.scrollTop = messagesEl.scrollHeight;
       }
     });
