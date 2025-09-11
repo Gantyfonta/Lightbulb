@@ -15,7 +15,6 @@
     .off{background:var(--off);color:#9aa7b7}
     .on{background:linear-gradient(180deg,var(--on),#d9b94a);color:#111;font-size:14px}
     .status{text-align:center;margin-top:14px;color:#bcd3f6}
-    .score{text-align:center;margin-top:6px;color:#f6e05e;font-weight:bold}
     .chat{margin-top:20px}
     .messages{max-height:150px;overflow-y:auto;background:rgba(255,255,255,0.05);padding:8px;border-radius:8px;margin-bottom:8px;font-size:14px}
     .msg{margin-bottom:4px}
@@ -29,7 +28,6 @@
     <h1>Turn On All The Lights (Multiplayer)</h1>
     <div id="grid" class="grid" aria-live="polite"></div>
     <div id="status" class="status">Connecting...</div>
-    <div id="score" class="score">Times completed: 0</div>
 
     <div class="chat">
       <div id="messages" class="messages"></div>
@@ -43,7 +41,7 @@
   <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getDatabase, ref, onChildAdded, onValue, push, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+    import { getDatabase, ref, onChildAdded, push, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
     // Your Firebase project config
     const firebaseConfig = {
@@ -62,7 +60,6 @@
 
     const gridEl = document.getElementById('grid');
     const statusEl = document.getElementById('status');
-    const scoreEl = document.getElementById('score');
     const messagesEl = document.getElementById('messages');
     const chatInput = document.getElementById('chatInput');
     const sendBtn = document.getElementById('sendBtn');
@@ -70,7 +67,6 @@
     const size = 5; // one row of 5
     let tiles = new Array(size).fill(false);
     let joinTime = Date.now();
-    let score = 0;
 
     function renderGrid(){
       gridEl.innerHTML = '';
@@ -96,21 +92,15 @@
       update(ref(db,'game'), updates);
     }
 
-    function incrementScore(){
-      update(ref(db,'game'), { score: score + 1 });
-    }
-
     // Listen to game state
+    import { onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
     onValue(ref(db,'game'), snapshot => {
       if (snapshot.exists()){
         const data = snapshot.val();
         tiles = data.tiles || new Array(size).fill(false);
-        score = data.score || 0;
         renderGrid();
-        scoreEl.textContent = `Times completed: ${score}`;
         statusEl.textContent = tiles.every(Boolean) ? "All ON! Resetting..." : "Playing";
         if (tiles.every(Boolean)){
-          incrementScore();
           setTimeout(()=> resetAll(), 1000);
         }
       } else {
